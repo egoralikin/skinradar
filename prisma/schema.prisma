@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ListingStatus {
+  ACTIVE
+  RESERVED
+  COMPLETED
+  CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model User {
+  id          String    @id @default(cuid())
+  steamId     String    @unique
+  personaName String?
+  avatar      String?
+  tradeUrl    String?
+  isAdmin     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  listings    Listing[]
+  offers      Offer[]   @relation("BuyerOffers")
+}
+
+model Listing {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetId        String
+  classId        String?
+  instanceId     String?
+  name           String
+  marketHashName String?
+  imageUrl       String?
+  exterior       String?
+  rarity         String?
+  priceCents     Int
+  currency       String        @default("USD")
+  status         ListingStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  offers         Offer[]
+
+  @@index([status, createdAt])
+  @@index([userId])
+  @@index([assetId])
+}
+
+model Offer {
+  id        String      @id @default(cuid())
+  listingId String
+  listing   Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId   String
+  buyer     User        @relation("BuyerOffers", fields: [buyerId], references: [id], onDelete: Cascade)
+  message   String?
+  status    OfferStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([listingId])
+  @@index([buyerId])
+}
